@@ -45,6 +45,10 @@
 <button onclick="toggleAutoCheck()" id="autoBtn">开启自动查询</button>
 
 <div id="result">等待查询...</div>
+<br>
+<label for="miaoma">喵提醒（喵码）输入在喵提醒公众号创建的喵码，如果查询到上线会把通知发送到微信</label>
+<input id="miaoma" placeholder="输入喵码，如果不填不会触发">
+<br>
 
 <script>
 let interval = null;
@@ -160,6 +164,13 @@ async function checkPlayers() {
                     if ("Notification" in window && Notification.permission === "granted") {
                         new Notification("DDNet 玩家上线", { body: r.name + " 已上线！" });
                     }
+                }
+                    // 喵码触发
+                const miaoma = document.getElementById("miaoma").value.trim();
+                if (miaoma) {
+                    fetch(`http://miaotixing.com/trigger?id=${miaoma}`)
+                    .then(() => console.log("喵码触发成功:", miaoma))
+                    .catch(err => console.log("喵码触发失败:", err));
                 }
                 lastStatuses[r.name] = true;
                 const btn = document.getElementById("autoBtn");
