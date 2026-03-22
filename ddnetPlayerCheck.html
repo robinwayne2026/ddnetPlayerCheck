@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>DDNet 玩家在线检测</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+    }
+    input {
+        padding: 8px;
+        width: 250px;
+        font-size: 16px;
+    }
+    button {
+        padding: 8px 12px;
+        margin-left: 5px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    #result {
+        margin-top: 20px;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+    }
+    .online {
+        color: green;
+        font-weight: bold;
+    }
+    .offline {
+        color: red;
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+<audio id="alertSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+<h2>DDNet 玩家在线检测</h2>
+
+<input id="playerName" placeholder="输入玩家名字">
+<button onclick="checkPlayer()">立即查询</button>
+<button onclick="toggleAutoCheck()" id="autoBtn">开启自动查询</button>
+
+<div id="result">等待查询...</div>
+
+<script>
+let interval = null;
+
+if ("Notification" in window) {
+    Notification.requestPermission();
+}
+
+async function checkPlayer() {
+    const name = document.getElementById("playerName").value.trim();
+    const resultDiv = document.getElementById("result");
+
+    if (!name) {
+        resultDiv.innerHTML = "请输入玩家名字";
+        return;
+    }
+
+    resultDiv.innerHTML = "查询中...";
+
+    try {
+        const res = await fetch("https://master1.ddnet.org/ddnet/15/servers.json");
+        const data = await res.json();
+
+        let foundServers = [];
+
+for (const server of data.servers) {
+    if (!server.info || !server.info.clients) continue;
+
+    for (const client of server.info.clients) {
+        if (client.name === name) {
+            foundServers.push(server.info.name);
+        }
+    }
+}
+
+        if (foundServers.length > 0) {
+            resultDiv.innerHTML = `
+                <div class="online">在线 ✅</div>
+                <div>所在服务器：</div>
+                <ul>
+                    ${foundServers.map(s => `<li>${s}</li>`).join("")}
+                </ul>
+                <div>更新时间：${new Date().toLocaleTimeString()}</div>
+            `;
+document.getElementById("alertSound").play();
+if (Notification.permission === "granted") {
+    new Notification("DDNet 玩家上线", {
+        body: name + " 已上线！",
+    });
+}
+	const btn = document.getElementById("autoBtn");
+        clearInterval(interval);
+        interval = null;
+        btn.innerText = "开启自动查询";
+        } else {
+            resultDiv.innerHTML = `
+                <div class="offline">离线 ❌</div>
+                <div>更新时间：${new Date().toLocaleTimeString()}</div>
+            `;
+        }
+
+    } catch (e) {
+        resultDiv.innerHTML = "查询失败（可能被 CORS 限制）";
+        console.error(e);
+    }
+}
+
+function toggleAutoCheck() {
+    const btn = document.getElementById("autoBtn");
+
+    if (interval) {
+        clearInterval(interval);
+        interval = null;
+        btn.innerText = "开启自动查询";
+    } else {
+        checkPlayer();
+        interval = setInterval(checkPlayer, 60000);
+        btn.innerText = "关闭自动查询";
+    }
+}
+</script>
+
+</body>
+</html>
